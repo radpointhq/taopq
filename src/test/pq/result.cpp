@@ -9,6 +9,35 @@
 #include <tao/pq/result_traits_pair.hpp>
 #include <tao/pq/result_traits_tuple.hpp>
 
+void run( const tao::pq::result& r )
+{
+   TEST_ASSERT( r.has_rows_affected() );
+   TEST_ASSERT( !r.empty() );
+   TEST_ASSERT( r.size() == 1 );
+   TEST_ASSERT( r.columns() == 3 );
+   TEST_ASSERT( r.at( 0 ).columns() == 3 );
+   TEST_THROWS( r.at( 1 ) );
+
+   TEST_ASSERT( r.name( 0 ) == "a" );
+   TEST_ASSERT( r.name( 1 ) == "b" );
+   TEST_ASSERT( r.name( 2 ) == "C" );
+
+   TEST_ASSERT( r.index( "a" ) == 0 );
+   TEST_ASSERT( r.index( "A" ) == 0 );
+   TEST_ASSERT( r.index( "\"a\"" ) == 0 );
+   TEST_THROWS( r.index( "\"A\"" ) );
+
+   TEST_ASSERT( r.index( "b" ) == 1 );
+   TEST_ASSERT( r.index( "B" ) == 1 );
+   TEST_ASSERT( r.index( "\"b\"" ) == 1 );
+   TEST_THROWS( r.index( "\"B\"" ) );
+
+   TEST_THROWS( r.index( "c" ) );
+   TEST_THROWS( r.index( "C" ) );
+   TEST_THROWS( r.index( "\"c\"" ) );
+   TEST_ASSERT( r.index( "\"C\"" ) == 2 );
+}
+
 void run()
 {
    const auto connection = tao::pq::connection::create( tao::pq::internal::getenv( "TAOPQ_TEST_DATABASE", "dbname=template1" ) );
@@ -77,32 +106,15 @@ void run()
    TEST_ASSERT( connection->execute( "SELECT 1, 2 UNION ALL SELECT 2, 5 UNION ALL SELECT 3, 42" ).map< int, int >().size() == 3 );
 
    const auto result = connection->execute( "SELECT 1 AS a, 2 AS B, 3 AS \"C\"" );
-
-   TEST_ASSERT( result.has_rows_affected() );
-   TEST_ASSERT( !result.empty() );
-   TEST_ASSERT( result.size() == 1 );
-   TEST_ASSERT( result.columns() == 3 );
-   TEST_ASSERT( result.at( 0 ).columns() == 3 );
-   TEST_THROWS( result.at( 1 ) );
-
-   TEST_ASSERT( result.name( 0 ) == "a" );
-   TEST_ASSERT( result.name( 1 ) == "b" );
-   TEST_ASSERT( result.name( 2 ) == "C" );
-
-   TEST_ASSERT( result.index( "a" ) == 0 );
-   TEST_ASSERT( result.index( "A" ) == 0 );
-   TEST_ASSERT( result.index( "\"a\"" ) == 0 );
-   TEST_THROWS( result.index( "\"A\"" ) );
-
-   TEST_ASSERT( result.index( "b" ) == 1 );
-   TEST_ASSERT( result.index( "B" ) == 1 );
-   TEST_ASSERT( result.index( "\"b\"" ) == 1 );
-   TEST_THROWS( result.index( "\"B\"" ) );
-
-   TEST_THROWS( result.index( "c" ) );
-   TEST_THROWS( result.index( "C" ) );
-   TEST_THROWS( result.index( "\"c\"" ) );
-   TEST_ASSERT( result.index( "\"C\"" ) == 2 );
+   {
+      run( result );
+      tao::pq::result res2 = result;
+      run( res2 );
+      tao::pq::result res3 = std::move( res2 );
+      run( res3 );
+      res2 = res3;
+      run( res2 );
+   }
 
    TEST_THROWS( connection->execute( "SELECT 42 WHERE FALSE" ).as< int >() );
    TEST_THROWS( connection->execute( "SELECT 1 UNION ALL SELECT 2" ).as< int >() );

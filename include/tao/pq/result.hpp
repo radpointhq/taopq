@@ -45,9 +45,9 @@ namespace tao::pq
       friend class connection;
       friend class table_writer;
 
-      const std::shared_ptr< PGresult > m_pgresult;
-      const std::size_t m_columns;
-      const std::size_t m_rows;
+      std::shared_ptr< ::PGresult > m_pgresult;
+      std::size_t m_columns;
+      std::size_t m_rows;
 
       void check_has_result_set() const;
       void check_row( const std::size_t row ) const;
@@ -60,6 +60,16 @@ namespace tao::pq
       result( ::PGresult* pgresult, const mode_t mode = mode_t::expect_ok );
 
    public:
+      result() = delete;
+
+      result( const result& ) noexcept = default;
+      result( result&& ) noexcept = default;
+
+      result& operator=( const result& ) noexcept = default;
+      result& operator=( result&& ) noexcept = default;
+
+      ~result() = default;
+
       [[nodiscard]] bool has_rows_affected() const;
       [[nodiscard]] std::size_t rows_affected() const;
 
